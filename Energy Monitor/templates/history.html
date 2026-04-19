@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>History</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px; height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        ::-webkit-scrollbar { height: 4px; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-[#0f172a] text-white p-4 md:p-8">
+    <div class="max-w-5xl mx-auto">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+            <div class="flex items-center gap-4">
+                <a href="/" class="bg-slate-700 hover:bg-slate-600 p-2 md:px-4 md:py-2 rounded-lg transition text-sm">
+                    ← <span class="hidden md:inline">Dashboard</span>
+                </a>
+                <h2 class="text-xl md:text-2xl font-bold">Historical Data</h2>
+            </div>
+            
+            <div class="flex gap-2 w-full md:w-auto">
+                <a href="/download_csv" class="flex-1 md:flex-none text-center bg-green-600 hover:bg-green-700 px-3 py-2.5 rounded-lg text-sm transition font-medium">
+                    📥 CSV
+                </a>
+                <button onclick="resetLogs()" class="flex-1 md:flex-none bg-red-600 hover:bg-red-700 px-3 py-2.5 rounded-lg text-sm font-medium">
+                    Clear All
+                </button>
+            </div>
+        </div>
+
+        <div class="mb-6">
+            <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">🔍</span>
+                <input type="text" id="searchInput" onkeyup="filterTable()" 
+                       placeholder="Search data..." 
+                       class="w-full bg-[#1e293b] border border-slate-700 rounded-lg py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+            </div>
+        </div>
+        
+        <div class="bg-[#1e293b] rounded-xl overflow-hidden border border-slate-700 shadow-2xl">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left min-w-[500px]" id="historyTable">
+                    <thead class="bg-slate-800 text-slate-400 uppercase text-xs font-semibold">
+                        <tr>
+                            <th class="p-4">Timestamp</th>
+                            <th class="p-4 text-center">Volts</th>
+                            <th class="p-4 text-center">Watts</th>
+                            <th class="p-4 text-center">Cost</th>
+                        </tr>
+                    </thead>
+                    <tbody id="log-table" class="text-sm">
+                        <tr>
+                            <td colspan="4" class="p-10 text-center">
+                                <div class="spinner mb-2"></div>
+                                <p class="text-slate-400">Fetching logs...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const tableBody = document.getElementById('log-table');
+
+        async function loadHistory() {
+            try {
+                const res = await fetch('/all_logs');
+                const data = await res.json();
+                
+                if (data.logs.length === 0) {
+                    tableBody.innerHTML = `<tr><td colspan="4" class="p-10 text-center text-slate-500">No logs found.</td></tr>`;
+                    return;
+                }
+
+                tableBody.innerHTML = data.logs.map(row => `
+                    <tr class="border-b border-slate-800 hover:bg-slate-800/50 transition">
+                        <td class="p-4 text-slate-400 whitespace-nowrap">${row.timestamp}</td>
+                        <td class="p-4 text-center font-mono">${row.voltage.toFixed(1)}V</td>
+                        <td class="p-4 text-center font-mono text-green-400 font-bold">${row.power.toFixed(1)}W</td>
+                        <td class="p-4 text-center text-yellow-500 font-bold">₱${row.cost.toFixed(2)}</td>
+                    </tr>
+                `).join('');
+            } catch (e) { 
+                tableBody.innerHTML = `<tr><td colspan="4" class="p-10 text-center text-red-400">Error loading data.</td></tr>`;
+            }
+        }
+
+        function filterTable() {
+            const input = document.getElementById("searchInput");
+            const filter = input.value.toUpperCase();
+            const table = document.getElementById("historyTable");
+            const tr = table.getElementsByTagName("tr");
+
+            for (let i = 1; i < tr.length; i++) {
+                const rowText = tr[i].textContent || tr[i].innerText;
+                tr[i].style.display = rowText.toUpperCase().indexOf(filter) > -1 ? "" : "none";
+            }
+        }
+
+        async function resetLogs() {
+            if(confirm("Delete all data?")) {
+                try {
+                    const res = await fetch('/reset_logs', { method: 'POST' });
+                    if (res.ok) {
+                        localStorage.setItem('db_reset_signal', Date.now());
+                        localStorage.removeItem('graph_labels');
+                        localStorage.removeItem('graph_data');
+                        localStorage.removeItem('peak_val');
+                        loadHistory();
+                    }
+                } catch (e) { alert("Failed to reset."); }
+            }
+        }
+        loadHistory();
+    </script>
+</body>
+</html>
