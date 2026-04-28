@@ -1,4 +1,4 @@
-# ⚡ SMS: Smart Household Energy Usage Monitor
+# ⚡ SMS: Household Energy Usage Monitor
 
 > A capstone project by **Paul Anthony T. Cabahug**
 > PHINMA University of Iloilo — College of Information Technology Education
