@@ -135,7 +135,6 @@ The system runs on a three-layer architecture:
 | Backend Server | Python 3.8+ with Flask |
 | Database | SQLite3 (file: `energy_data.db`, auto-created) |
 | Frontend | HTML5, Tailwind CSS (CDN), Chart.js (CDN) |
-| Notifications | Telegram Bot API, Blynk IoT Platform |
 
 ---
 
